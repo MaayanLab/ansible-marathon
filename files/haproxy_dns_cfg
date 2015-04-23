@@ -28,9 +28,9 @@ defaults
   log         global
   retries     3
   maxconn     2000
-  contimeout  5000
-  clitimeout  50000
-  srvtimeout  50000
+  timeout connect  5000
+  timeout client  50000
+  timeout server  50000
   stats enable
   stats auth admin:admin
   stats uri /haproxy
@@ -61,7 +61,7 @@ EOF
     set -- $REPLY
     local name="$1"
     cat <<EOF
-  acl host_${name} hdr_beg(host) -i ${name}
+  acl host_${name} path_beg -i /${name}
   use_backend ${name}_cluster if host_${name}
 
 EOF
