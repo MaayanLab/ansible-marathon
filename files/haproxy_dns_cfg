@@ -29,11 +29,8 @@ defaults
   retries     3
   maxconn     2000
   timeout connect  5000
-  timeout client  50000
-  timeout server  50000
-  stats enable
-  stats auth admin:admin
-  stats uri /haproxy
+  timeout client  500000
+  timeout server  500000
 
 EOF
 }
@@ -43,6 +40,7 @@ function marathon_apps {
 
   frontend "$z"
   backend "$z"
+  portmapping "$z"
 }
 
 function frontend {
@@ -54,17 +52,45 @@ frontend http-in
   option dontlognull
   option forwardfor
   option http-server-close
+  stats enable
+  stats uri /haproxy
+  stats auth admin:admin
+
 EOF
 
   while IFS= read 
   do
     set -- $REPLY
     local name="$1"
+    local port="$2"
     cat <<EOF
   acl host_${name} path_beg -i /${name}
-  use_backend ${name}_cluster if host_${name}
+  use_backend ${name}-${port}_cluster if host_${name}
 
 EOF
+  done <<< "$1"
+}
+
+function portmapping {
+  while IFS= read 
+  do
+    set -- $REPLY
+    local name="$1"
+    local port="$2"    
+    shift 2
+    cat <<EOF
+
+listen ${name}-${port}
+  bind 0.0.0.0:$port
+  mode tcp
+  option tcplog
+  balance leastconn
+EOF
+    while [[ $# -gt 0 ]]
+    do
+      out "  server ${name}-$# $1"
+      shift
+    done
   done <<< "$1"
 }
 
@@ -77,7 +103,7 @@ function backend {
     shift 2
     cat <<EOF
 
-backend ${name}_cluster
+backend ${name}-${port}_cluster
   option httpclose
   option forwardfor
   mode http
@@ -85,7 +111,7 @@ backend ${name}_cluster
 EOF
     while [[ $# -gt 0 ]]
     do
-      out "  server ${name}-$# $1 check"
+      out "  server ${name}-$# $1"
       shift
     done
   done <<< "$1"
