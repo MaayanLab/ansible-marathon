@@ -23,3 +23,21 @@
   when: haproxy_dir.stat.exists
   tags:
    - haproxy
+
+- name: Setup haproxy reload webhook
+  copy: src=marathon-haproxy-webhook dest="{{ haproxy_script_location }}/marathon-haproxy-webhook" mode=755
+  when: haproxy_dir.stat.exists
+  tags:
+   - haproxy
+
+- name: Install haproxy reload webhook dependencies 1
+  apt: package=python-pip state=installed
+  
+- name: Install haproxy reload webhook dependencies 2
+  shell: "pip install flask"
+
+- name: Copy initd file
+  copy: src=marathon-haproxy-webhook.initd dest=/etc/init.d/marathon-haproxy-webhook mode=755
+
+- name: Enable and start marathon-haproxy-webhook
+  service: name=marathon-haproxy-webhook state=started enabled=yes

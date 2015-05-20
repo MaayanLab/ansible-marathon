@@ -29,3 +29,7 @@
 
 - name: Set credentials for api
   lineinfile: line={{ marathon_credentials }} dest=/etc/marathon/conf/http_credentials create=yes
+
+- name: Set --event_subscriber option
+  lineinfile: line="http_callback" dest=/etc/marathon/conf/event_subscriber create=yes
+
